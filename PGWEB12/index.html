@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <title>Web-GIS dengan GeoServer dan Leaflet</title>
+
+    <style>
+        /* Tema Warna Cyan */
+        :root {
+            --primary-color: #00bcd4;
+            --secondary-color: #0097a7;
+            --text-color: #ffffff;
+            --background-color: #e0f7fa;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: var(--background-color);
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            text-align: center;
+            padding: 15px 0;
+            font-size: 2em;
+            font-weight: bold;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #map {
+            width: 100%;
+            height: 85vh;
+            /* Menyisakan ruang untuk header dan footer */
+            margin: 0 auto;
+            border: 5px solid var(--secondary-color);
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        footer {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            text-align: center;
+            padding: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .leaflet-control-layers {
+            background-color: var(--primary-color) !important;
+            color: var(--text-color) !important;
+            border-radius: 5px;
+        }
+
+        .leaflet-control-layers label {
+            color: var(--text-color) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        WEBSITE PETA INTERAKTIF KABUPATEN GUNUNGKIDUL
+    </header>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Footer -->
+    <footer>
+        © 2024 Kabupaten Gunungkidul | Dibuat dengan ❤ menggunakan GeoServer dan Leaflet
+    </footer>
+</body>
+
+</html>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<!-- Leaflet GeoServer JS -->
+<script src="lib/L.Geoserver.js"></script>
+
+<script>
+    // Inisialisasi peta dan atur tampilan awal
+    var map = L.map("map").setView([-8.0308, 110.6165], 11);
+
+    // Definisi lapisan peta dasar (basemap)
+    var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    });
+
+    var satelit = L.tileLayer(
+        "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        {
+            maxZoom: 20,
+            subdomains: ["mt0", "mt1", "mt2", "mt3"],
+            attribution: "&copy; <a href='https://www.google.com/maps'>Google Maps</a>",
+        }
+    );
+
+    // Tambahkan peta dasar default (OpenStreetMap)
+    osm.addTo(map);
+
+    // Tambahkan lapisan WMS untuk "Admin Gunungkidul Kecamatan" (layer dasar untuk overlay)
+    var adminGunungkidulKec = L.Geoserver.wms(
+        "http://localhost:8080/geoserver/pgweb_10/wms",
+        {
+            layers: "pgweb_10:Admin_Gunungkidul_Kec",
+            transparent: true,
+            format: "image/png",
+            attribution: "Admin Gunungkidul Kecamatan",
+        }
+    );
+
+    // Tambahkan lapisan WMS untuk "Jalan Gunungkidul" (diletakkan di atas layer admin)
+    var jalanGunungkidul = L.Geoserver.wms(
+        "http://localhost:8080/geoserver/pgweb_10/wms",
+        {
+            layers: "pgweb_10:Jalan_Gunungkidul",
+            transparent: true,
+            format: "image/png",
+            attribution: "Jalan Gunungkidul",
+        }
+    );
+
+    // Tambahkan layer "Admin Gunungkidul Kecamatan" terlebih dahulu
+    adminGunungkidulKec.addTo(map);
+
+    // Tambahkan layer "Jalan Gunungkidul" agar berada di atas layer admin
+    jalanGunungkidul.addTo(map);
+
+    // Definisikan grup lapisan untuk kontrol
+    var petaDasar = {
+        "OpenStreetMap": osm,
+        "Satelit": satelit,
+    };
+
+    var petaOverlay = {
+        "Admin Gunungkidul Kecamatan": adminGunungkidulKec,
+        "Jalan Gunungkidul": jalanGunungkidul,
+    };
+
+    // Tambahkan kontrol lapisan ke peta
+    L.control.layers(petaDasar, petaOverlay, { collapsed: false }).addTo(map);
+
+    // Tambahkan legenda untuk lapisan WMS
+    var legendaAdmin = L.Geoserver.legend(
+        "http://localhost:8080/geoserver/pgweb_10/wms",
+        {
+            layers: "pgweb_10:Admin_Gunungkidul_Kec",
+        }
+    );
+
+    var legendaJalan = L.Geoserver.legend(
+        "http://localhost:8080/geoserver/pgweb_10/wms",
+        {
+            layers: "pgweb_10:Jalan_Gunungkidul",
+        }
+    );
+
+    // Tambahkan legenda ke peta
+    legendaAdmin.addTo(map);
+    legendaJalan.addTo(map);
+</script>
